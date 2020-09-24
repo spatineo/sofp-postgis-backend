@@ -142,10 +142,14 @@ export class PostGISCollection implements Collection {
             .offset(Number(query.nextToken || 0));
 
         _.each(that.superCollections, c => {
-            q = c.filterClause(q);
+            if (c.filterClause) {
+                q = c.filterClause(q);
+            }
         });
-        q = that.collection.filterClause(q);
-
+        if (that.collection.filterClause) {
+            q = that.collection.filterClause(q);
+        }
+        
         if (propertyFilter) {
             _.each(propertyFilter.parameters.properties, (v, k) => {
                 var column = _.find(that.tableDefinition.columns, c => c.name.toLowerCase() === k.toLowerCase());
