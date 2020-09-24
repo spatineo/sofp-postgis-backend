@@ -3,7 +3,6 @@
   "version": "0.5.0",
   "description": "Simple postgis backend for sofp",
   "main": "dist/index.js",
-  "sofp-backend": "SofpPostgisBackend",
   "scripts": {
     "start": "tsc -w & nodemon ../sofp-core/dist/server/app.js .",
     "dev": "tsc -w & nodemon ./dev.js",
