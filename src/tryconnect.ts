@@ -1,12 +1,12 @@
 var Client = require('pg').Client;
 
 export function tryConnect(opts, callback) {
-    var uri = opts.url;
+    var url = opts.url;
     var retries = opts.retries || 3;
     var retryDelay = opts.retryDelay || 5000;
 
     retries--;
-    var client = new Client(uri);
+    var client = new Client(url);
     if (retries === 0) {
         callback(new Error('unable to connect'));
         return;
@@ -17,7 +17,7 @@ export function tryConnect(opts, callback) {
         client.end(() => {
             console.log('  retrying in '+retryDelay+'ms');
             setTimeout(() => {
-                tryConnect({ uri: uri, retries: retries, retryDelay: retryDelay }, callback);
+                tryConnect({ url: url, retries: retries, retryDelay: retryDelay }, callback);
             }, retryDelay);
         });
     }
