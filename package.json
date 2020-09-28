@@ -50,7 +50,7 @@
     "nodemon": "^2.0.4",
     "ts-jest": "~25.5.1",
     "ts-node": "~8.10.2",
-    "sofp-core": "~0.6.5",
+    "sofp-core": "~0.6.6",
     "typescript": "~3.9.7"
   }
 }
