@@ -28,9 +28,6 @@ const st = KnexPostgis(db);
 
 var Client = require('pg').Client;
 
-var client = new Client('postgresql://docker:docker@localhost:5432/gis');
-client.connect();
-
 /**
  * Example queries:
  *
@@ -214,7 +211,7 @@ export class PostGISCollection implements Collection {
             console.log('WARNING! This backend was unable to process all filters for a query and might use a lot of memory! Unsupported filterClasses: '+_.map(ret.remainingFilter, f => f.filterClass));
         }
 
-        client.query(q.toString(), (err, result) => {
+        that.client.query(q.toString(), (err, result) => {
             var item, i;
             if (err) {
                 ret.push(new Error(err));
@@ -254,7 +251,7 @@ export class PostGISCollection implements Collection {
                 q = c.filterClause(q);
             });
 
-            client.query(q.toString(), (err, result) => {
+            that.client.query(q.toString(), (err, result) => {
                 if (err) {
                     reject(err);
                 } else {
