@@ -9,6 +9,7 @@ export interface CollectionConfiguration {
 
 export interface ColumnDefinition {
     name : string;
+    columnName? : string;
     type : string;
     description? : string;
     outputTz? : string;
@@ -22,6 +23,7 @@ export interface ColumnDefinition {
 export interface TableDefinition {
     title: string;
     name: string;
+    geometryColumnName?: string;
     description: string;
     tableName: string;
     schemaName: string;

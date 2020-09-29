@@ -7,6 +7,7 @@ import KnexPostgis from 'knex-postgis';
 import * as wkx from 'wkx';
 
 import * as proj4 from 'proj4';
+import * as pg from 'pg';
 
 import {TableDefinition, CollectionConfiguration} from './types';
 
@@ -53,7 +54,7 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
         type: 'Feature',
         geometry: wkx.Geometry.parse(item.geometry).toGeoJSON(),
         properties: _.reduce(tableDef.columns, (memo, c) => {
-            var value = item[c.name.toLowerCase()];
+            var value = item[(c.columnName || c.name).toLowerCase()];
             if (c.type === 'date' && value !== null && value !== undefined) {
                 value = moment(value).tz(c.outputTz).format(c.dateFormat);
             }
@@ -81,9 +82,9 @@ export class PostGISCollection implements Collection {
 
     additionalQueryParameters : QueryParameter [] = [];
 
-    client : Object = null;
+    client : pg.Client = null;
 
-    constructor(tableDef : TableDefinition, collection : CollectionConfiguration, superCollections : CollectionConfiguration [], client) {
+    constructor(tableDef : TableDefinition, collection : CollectionConfiguration, superCollections : CollectionConfiguration [], client : pg.Client) {
         this.title = tableDef.title;
         if (collection.variantTitle) {
             this.title += ` (${collection.variantTitle})`;
@@ -129,8 +130,8 @@ export class PostGISCollection implements Collection {
         var outputCount = 0;
         var that = this;
 
-        var columns_to_select : Object[] = _.map(that.tableDefinition.columns, c => c.name.toLowerCase());
-        columns_to_select.push(st.asText('wkb_geometry').as('geometry'));
+        var columns_to_select : Object[] = _.map(that.tableDefinition.columns, c => (c.columnName || c.name).toLowerCase());
+        columns_to_select.push(st.asText(that.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
         var column_to_sort = _.find(this.tableDefinition.columns, c => c.primaryKey);
         var q = db
             .select(columns_to_select)
@@ -151,9 +152,9 @@ export class PostGISCollection implements Collection {
             _.each(propertyFilter.parameters.properties, (v, k) => {
                 var column = _.find(that.tableDefinition.columns, c => c.name.toLowerCase() === k.toLowerCase());
                 if (column.array) {
-                    q = q.where(k.toLowerCase(), '@>', [v]);
+                    q = q.where((column.columnName || column.name).toLowerCase(), '@>', [v]);
                 } else {
-                    q = q.where(k.toLowerCase(), v);
+                    q = q.where((column.columnName || column.name).toLowerCase(), v);
                 }
             });
         }
@@ -191,17 +192,17 @@ export class PostGISCollection implements Collection {
                 intersectsGeometry = st.geomFromText(polyText, crsUrlToNumber(that.tableDefinition.crs));
             }
 
-            q = q.where(st.intersects('wkb_geometry', intersectsGeometry));
+            q = q.where(st.intersects(that.tableDefinition.geometryColumnName || 'wkb_geometry', intersectsGeometry));
         }
 
         if (timeFilter) {
             let timeEndCol = _.find(this.tableDefinition.columns, c => c.timeEnd);
             let timeStartCol = _.find(this.tableDefinition.columns, c => c.timeStart);
             if (timeFilter.parameters.momentStart) {
-                q = q.where(timeEndCol.name.toLowerCase(), '>=', timeFilter.parameters.momentStart.toDate());
+                q = q.where((timeEndCol.columnName || timeEndCol.name).toLowerCase(), '>=', timeFilter.parameters.momentStart.toDate());
             }
             if (timeFilter.parameters.momentEnd) {
-                q = q.where(timeStartCol.name.toLowerCase(), '<=', timeFilter.parameters.momentEnd.toDate());
+                q = q.where((timeEndCol.columnName || timeStartCol.name).toLowerCase(), '<=', timeFilter.parameters.momentEnd.toDate());
             }
         }
 
