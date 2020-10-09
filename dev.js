@@ -27,6 +27,7 @@ const tableDefinition = {
     name: `au_inspire_4500k_wgs84`,
     description: `These are administrative units in Finland in 4500k scale, WGS84`,
     tableName: `au_inspire_4500k_wgs84`,
+    tableSchema: 'public',
     crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',
     columns : columnsAuInspire,
 

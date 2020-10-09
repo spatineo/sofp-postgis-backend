@@ -135,6 +135,7 @@ export class PostGISCollection implements Collection {
         var column_to_sort = _.find(this.tableDefinition.columns, c => c.primaryKey);
         var q = db
             .select(columns_to_select)
+            .withSchema(that.tableDefinition.tableSchema || 'public')
             .from(that.tableDefinition.tableName)
             .orderBy(column_to_sort.name.toLowerCase())
             .offset(Number(query.nextToken || 0));
@@ -244,12 +245,17 @@ export class PostGISCollection implements Collection {
             
             var q = db
                 .select(columns_to_select)
+                .withSchema(that.tableDefinition.tableSchema || 'public')
                 .from(that.tableDefinition.tableName)
                 .where(_.find(that.tableDefinition.columns, c => c.primaryKey).name.toLowerCase(), id);
             
-            q = that.collection.filterClause(q);
+            if (that.collection.filterClause) {
+                q = that.collection.filterClause(q);
+            }
             _.each(that.superCollections, c => {
-                q = c.filterClause(q);
+                if (c.filterClause) {
+                    q = c.filterClause(q);
+                }
             });
 
             that.client.query(q.toString(), (err, result) => {

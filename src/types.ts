@@ -26,6 +26,7 @@ export interface TableDefinition {
     geometryColumnName?: string;
     description: string;
     tableName: string;
+    tableSchema: string;
     schemaName: string;
     crs: string;
     columns: ColumnDefinition [];
