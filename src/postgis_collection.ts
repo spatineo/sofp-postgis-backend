@@ -241,7 +241,7 @@ export class PostGISCollection implements Collection {
         var ret = new Promise((resolve, reject) => {
 
             var columns_to_select : Object[] = _.map(that.tableDefinition.columns, c => c.name.toLowerCase());
-            columns_to_select.push(st.asText('wkb_geometry').as('geometry'));
+            columns_to_select.push(st.asText(that.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
             
             var q = db
                 .select(columns_to_select)
