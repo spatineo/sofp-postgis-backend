@@ -1,3 +1,4 @@
+import { PropertyType } from 'sofp-lib';
 
 export interface CollectionConfiguration {
     collectionPath : string;
@@ -10,7 +11,7 @@ export interface CollectionConfiguration {
 export interface ColumnDefinition {
     name : string;
     columnName? : string;
-    type : string;
+    type : PropertyType;
     description? : string;
     outputTz? : string;
     dateFormat? : string;

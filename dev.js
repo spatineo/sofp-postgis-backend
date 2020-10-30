@@ -5,9 +5,12 @@ const sofpLib = require('sofp-lib');
 const pg = require('./dist/');
 
 const columnsAuInspire= [
+    { name: "id", type: "string", primaryKey: true },
+
     { name: "inspireId_localId",      type: "string", primaryKey: true },
     { name: "inspireId_versionId",    type: "number" },
     { name: "inspireId_namespace",    type: "string" },
+
     { name: "beginLifespanVersion",   type: "date", outputTz: "Europe/Helsinki", dateFormat: "YYYY-MM-DD", timeStart: true },
     { name: "endLifespanVersion",     type: "date", outputTz: "Europe/Helsinki", dateFormat: "YYYY-MM-DD", timeEnd: true },
     { name: "country",                type: "string" },
@@ -17,6 +20,7 @@ const columnsAuInspire= [
     { name: "nationalCode",           type: "string" },
     { name: "nationalLevel",          type: "string" },
     { name: "nationalLevelName",      type: "string" },
+    { name: "secondaryGeometry", columnName: 'wkb_geometry',      type: "geometry" },
     { name: "upperLevelUnit",         type: "string", array: true },
     { name: "lowerLevelUnit",         type: "string", array: true }
 ];

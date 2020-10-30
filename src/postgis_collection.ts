@@ -1,4 +1,4 @@
-import {Backend, Collection, Link, QueryParameter, Query, FeatureStream, Feature, Filter, Property} from 'sofp-lib';
+import {Backend, Collection, Link, QueryParameter, Query, FeatureStream, PropertyType, Feature, Filter, Property} from 'sofp-lib';
 
 import * as _ from 'lodash';
 import moment from 'moment-timezone';
@@ -55,14 +55,18 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
         geometry: wkx.Geometry.parse(item.geometry).toGeoJSON(),
         properties: _.reduce(tableDef.columns, (memo, c) => {
             var value = item[(c.columnName || c.name).toLowerCase()];
-            if (c.type === 'date' && value !== null && value !== undefined) {
+            if (c.type === PropertyType.date && value !== null && value !== undefined) {
                 value = moment(value).tz(c.outputTz).format(c.dateFormat);
+            }
+            if (c.type === PropertyType.geometry && value !== null && value !== undefined) {
+                value = wkx.Geometry.parse(value).toGeoJSON();
             }
             
             memo[c.name] = value;
             return memo;
         }, {})
     }
+    // TODO: convert properties with periods in their names to objects
     return feature;
 }
 
@@ -117,6 +121,19 @@ export class PostGISCollection implements Collection {
         return filter;
     }
 
+    produceColumnsToSelect() : Object[] {
+        var columns_to_select : Object[] = _.map(this.tableDefinition.columns, c => {
+            if (c.type === PropertyType.geometry) {
+                return st.asText((c.columnName || c.name).toLowerCase());
+            } else {
+                return (c.columnName || c.name).toLowerCase();
+            }
+        });
+        columns_to_select.push(st.asText(this.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
+
+        return columns_to_select;
+    }
+
     executeQuery(query : Query) : FeatureStream {
         var ret = new FeatureStream();
 
@@ -130,8 +147,7 @@ export class PostGISCollection implements Collection {
         var outputCount = 0;
         var that = this;
 
-        var columns_to_select : Object[] = _.map(that.tableDefinition.columns, c => (c.columnName || c.name).toLowerCase());
-        columns_to_select.push(st.asText(that.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
+        var columns_to_select : Object[] = that.produceColumnsToSelect();
         var column_to_sort = _.find(this.tableDefinition.columns, c => c.primaryKey);
         var q = db
             .select(columns_to_select)
@@ -152,6 +168,9 @@ export class PostGISCollection implements Collection {
         if (propertyFilter) {
             _.each(propertyFilter.parameters.properties, (v, k) => {
                 var column = _.find(that.tableDefinition.columns, c => c.name.toLowerCase() === k.toLowerCase());
+                if (column.type === PropertyType.geometry) {
+                    throw new Error('Unable to filter by geometry column');
+                }
                 if (column.array) {
                     q = q.where((column.columnName || column.name).toLowerCase(), '@>', [v]);
                 } else {
@@ -238,10 +257,9 @@ export class PostGISCollection implements Collection {
     getFeatureById(id : string) : Promise<Feature> {
         const that = this;
 
-        var ret = new Promise((resolve, reject) => {
+        var ret = new Promise<Feature>((resolve, reject) => {
 
-            var columns_to_select : Object[] = _.map(that.tableDefinition.columns, c => c.name.toLowerCase());
-            columns_to_select.push(st.asText(that.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
+            var columns_to_select : Object[] = that.produceColumnsToSelect();
             
             var q = db
                 .select(columns_to_select)
