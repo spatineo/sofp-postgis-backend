@@ -29,7 +29,7 @@
     }
   ],
   "dependencies": {
-    "sofp-lib": "^0.5.2",
+    "sofp-lib": "^0.6.3",
     "@turf/projection": "^6.0.1",
     "@types/yargs": "12.0.2",
     "knex": "^0.20.3",
@@ -50,7 +50,7 @@
     "nodemon": "^2.0.4",
     "ts-jest": "~25.5.1",
     "ts-node": "~8.10.2",
-    "sofp-core": "~0.6.6",
+    "sofp-core": "~0.7.1",
     "typescript": "~3.9.7"
   }
 }
