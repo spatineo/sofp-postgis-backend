@@ -1,6 +1,6 @@
 {
   "name": "sofp-postgis-backend",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Simple postgis backend for sofp",
   "main": "dist/index.js",
   "scripts": {
@@ -50,7 +50,7 @@
     "nodemon": "^2.0.4",
     "ts-jest": "~25.5.1",
     "ts-node": "~8.10.2",
-    "sofp-core": "~0.7.1",
+    "sofp-core": "~0.7.3",
     "typescript": "~3.9.7"
   }
 }
