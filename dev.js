@@ -3,11 +3,12 @@ const sofp = require('sofp-core');
 const sofpLib = require('sofp-lib');
 
 const pg = require('./dist/');
+const _ = require('lodash');
 
 const columnsAuInspire= [
     { name: "id", type: "string", primaryKey: true },
 
-    { name: "inspireId_localId",      type: "string", primaryKey: true },
+    { name: "inspireId_localId",      type: "string" },
     { name: "inspireId_versionId",    type: "number" },
     { name: "inspireId_namespace",    type: "string" },
 
@@ -25,6 +26,12 @@ const columnsAuInspire= [
     { name: "lowerLevelUnit",         type: "string", array: true }
 ];
 
+_.each(columnsAuInspire, c => {
+    if (!c.columnName) {
+        c.columnName = c.name.toLowerCase();
+    }
+});
+
 
 const tableDefinition = {
     title: `INSPIRE Administrative units 4500k`,
@@ -34,7 +41,7 @@ const tableDefinition = {
     tableSchema: 'public',
     crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',
     columns : columnsAuInspire,
-
+    hidePrimaryKey: true,
     schemaName: 'au_inspire'
 };
 

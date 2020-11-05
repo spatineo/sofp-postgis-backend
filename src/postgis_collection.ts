@@ -9,7 +9,7 @@ import * as wkx from 'wkx';
 import * as proj4 from 'proj4';
 import * as pg from 'pg';
 
-import {TableDefinition, CollectionConfiguration} from './types';
+import {ColumnDefinition, TableDefinition, CollectionConfiguration} from './types';
 
 proj4.defs('http://www.opengis.net/def/crs/OGC/1.3/CRS84', '+title=WGS 84 (long/lat) +proj=longlat +ellps=WGS84 +datum=WGS84 +units=degrees');
 proj4.defs('http://www.opengis.net/def/crs/EPSG/0/3067',   '+proj=utm +zone=35 +ellps=GRS80 +units=m +no_defs ');
@@ -49,24 +49,40 @@ var Client = require('pg').Client;
  **/
 
 function resultToGeoJSON(item, tableDef : TableDefinition) {
+    const pk  = _.find(tableDef.columns, c => c.primaryKey);
+
+    function nullSafeGeom(geom) {
+        if (geom) {
+            return wkx.Geometry.parse(geom).toGeoJSON();
+        } else {
+            return null;
+        }
+    }
+
+    function getValue(c : ColumnDefinition) {
+        var value = item[c.columnName || c.name];
+        if (c.type === PropertyType.date && value !== null && value !== undefined) {
+            value = moment(value).tz(c.outputTz).format(c.dateFormat);
+        }
+        if (c.type === PropertyType.geometry) {
+            value = nullSafeGeom(value);
+        }
+        return value;
+    }
+
     const feature = {
-        id: item.inspireid_localid,
+        id: getValue(pk),
         type: 'Feature',
-        geometry: wkx.Geometry.parse(item.geometry).toGeoJSON(),
+        geometry: nullSafeGeom(item.geometry),
         properties: _.reduce(tableDef.columns, (memo, c) => {
-            var value = item[(c.columnName || c.name).toLowerCase()];
-            if (c.type === PropertyType.date && value !== null && value !== undefined) {
-                value = moment(value).tz(c.outputTz).format(c.dateFormat);
+            if (c.primaryKey && tableDef.hidePrimaryKey) {
+                return memo;
             }
-            if (c.type === PropertyType.geometry && value !== null && value !== undefined) {
-                value = wkx.Geometry.parse(value).toGeoJSON();
-            }
-            
-            memo[c.name] = value;
+            memo[c.name] = getValue(c);
             return memo;
         }, {})
     }
-    // TODO: convert properties with periods in their names to objects
+
     return feature;
 }
 
@@ -124,9 +140,9 @@ export class PostGISCollection implements Collection {
     produceColumnsToSelect() : Object[] {
         var columns_to_select : Object[] = _.map(this.tableDefinition.columns, c => {
             if (c.type === PropertyType.geometry) {
-                return st.asText((c.columnName || c.name).toLowerCase());
+                return st.asText(c.columnName || c.name);
             } else {
-                return (c.columnName || c.name).toLowerCase();
+                return c.columnName || c.name;
             }
         });
         columns_to_select.push(st.asText(this.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
@@ -153,7 +169,7 @@ export class PostGISCollection implements Collection {
             .select(columns_to_select)
             .withSchema(that.tableDefinition.tableSchema || 'public')
             .from(that.tableDefinition.tableName)
-            .orderBy(column_to_sort.name.toLowerCase())
+            .orderBy(column_to_sort.columnName || column_to_sort.name)
             .offset(Number(query.nextToken || 0));
 
         _.each(that.superCollections, c => {
@@ -172,9 +188,9 @@ export class PostGISCollection implements Collection {
                     throw new Error('Unable to filter by geometry column');
                 }
                 if (column.array) {
-                    q = q.where((column.columnName || column.name).toLowerCase(), '@>', [v]);
+                    q = q.where(column.columnName || column.name, '@>', [v]);
                 } else {
-                    q = q.where((column.columnName || column.name).toLowerCase(), v);
+                    q = q.where(column.columnName || column.name, v);
                 }
             });
         }
@@ -219,10 +235,10 @@ export class PostGISCollection implements Collection {
             let timeEndCol = _.find(this.tableDefinition.columns, c => c.timeEnd);
             let timeStartCol = _.find(this.tableDefinition.columns, c => c.timeStart);
             if (timeFilter.parameters.momentStart) {
-                q = q.where((timeEndCol.columnName || timeEndCol.name).toLowerCase(), '>=', timeFilter.parameters.momentStart.toDate());
+                q = q.where(timeEndCol.columnName || timeEndCol.name, '>=', timeFilter.parameters.momentStart.toDate());
             }
             if (timeFilter.parameters.momentEnd) {
-                q = q.where((timeEndCol.columnName || timeStartCol.name).toLowerCase(), '<=', timeFilter.parameters.momentEnd.toDate());
+                q = q.where(timeEndCol.columnName || timeStartCol.name, '<=', timeFilter.parameters.momentEnd.toDate());
             }
         }
 
@@ -261,11 +277,13 @@ export class PostGISCollection implements Collection {
 
             var columns_to_select : Object[] = that.produceColumnsToSelect();
             
+            var pk = _.find(that.tableDefinition.columns, c => c.primaryKey);
+
             var q = db
                 .select(columns_to_select)
                 .withSchema(that.tableDefinition.tableSchema || 'public')
                 .from(that.tableDefinition.tableName)
-                .where(_.find(that.tableDefinition.columns, c => c.primaryKey).name.toLowerCase(), id);
+                .where(pk.columnName || pk.name, id);
             
             if (that.collection.filterClause) {
                 q = that.collection.filterClause(q);

@@ -30,6 +30,7 @@ export interface TableDefinition {
     tableSchema: string;
     schemaName: string;
     crs: string;
+    hidePrimaryKey?: boolean; // true if primaryKey column should not be included in properties
     columns: ColumnDefinition [];
     collection: CollectionConfiguration;
 };
