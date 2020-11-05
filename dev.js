@@ -13,7 +13,7 @@ const columnsAuInspire= [
     { name: "inspireId_namespace",    type: "string" },
 
     { name: "@virtual",           type: "string", valueFn: function(feature) {
-        return new sofpLib.PropertyReference('another_collection', feature.properties.inspireId_localId);
+        return new sofpLib.PropertyReference('another_collection', feature.properties.inspireId_localId, '/wow');
     }},
 
     { name: "beginLifespanVersion",   type: "date", outputTz: "Europe/Helsinki", dateFormat: "YYYY-MM-DD", timeStart: true },
