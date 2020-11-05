@@ -12,6 +12,10 @@ const columnsAuInspire= [
     { name: "inspireId_versionId",    type: "number" },
     { name: "inspireId_namespace",    type: "string" },
 
+    { name: "@virtual",           type: "string", valueFn: function(feature) {
+        return new sofpLib.PropertyReference('another_collection', feature.properties.inspireId_localId);
+    }},
+
     { name: "beginLifespanVersion",   type: "date", outputTz: "Europe/Helsinki", dateFormat: "YYYY-MM-DD", timeStart: true },
     { name: "endLifespanVersion",     type: "date", outputTz: "Europe/Helsinki", dateFormat: "YYYY-MM-DD", timeEnd: true },
     { name: "country",                type: "string" },

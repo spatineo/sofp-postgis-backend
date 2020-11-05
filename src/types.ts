@@ -19,6 +19,7 @@ export interface ColumnDefinition {
     timeStart? : boolean;
     timeEnd? : boolean;
     array? : boolean;
+    valueFn? : (feature) => object;
 };
 
 export interface TableDefinition {

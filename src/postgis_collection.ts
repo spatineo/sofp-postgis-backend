@@ -61,10 +61,11 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
 
     function getValue(c : ColumnDefinition) {
         var value = item[c.columnName || c.name];
-        if (c.type === PropertyType.date && value !== null && value !== undefined) {
+        if (c.valueFn) {
+            value = null;
+        } else if (c.type === PropertyType.date && value !== null && value !== undefined) {
             value = moment(value).tz(c.outputTz).format(c.dateFormat);
-        }
-        if (c.type === PropertyType.geometry) {
+        } else if (c.type === PropertyType.geometry) {
             value = nullSafeGeom(value);
         }
         return value;
@@ -82,6 +83,10 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
             return memo;
         }, {})
     }
+
+    _.each(_.filter(tableDef.columns, c => !!c.valueFn), c => {
+        feature.properties[c.name] = c.valueFn(feature);
+    });
 
     return feature;
 }
@@ -138,7 +143,8 @@ export class PostGISCollection implements Collection {
     }
 
     produceColumnsToSelect() : Object[] {
-        var columns_to_select : Object[] = _.map(this.tableDefinition.columns, c => {
+        var realColumns = _.filter(this.tableDefinition.columns, c => !c.valueFn);
+        var columns_to_select : Object[] = _.map(realColumns, c => {
             if (c.type === PropertyType.geometry) {
                 return st.asText(c.columnName || c.name);
             } else {
@@ -184,6 +190,9 @@ export class PostGISCollection implements Collection {
         if (propertyFilter) {
             _.each(propertyFilter.parameters.properties, (v, k) => {
                 var column = _.find(that.tableDefinition.columns, c => c.name.toLowerCase() === k.toLowerCase());
+                if (column.valueFn) {
+                    throw new Error('Unable to filter via a virtual column');
+                }
                 if (column.type === PropertyType.geometry) {
                     throw new Error('Unable to filter by geometry column');
                 }
