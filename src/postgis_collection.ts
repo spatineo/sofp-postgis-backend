@@ -151,7 +151,9 @@ export class PostGISCollection implements Collection {
                 return c.columnName || c.name;
             }
         });
-        columns_to_select.push(st.asText(this.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
+        if (this.tableDefinition.geometryColumnName !== null) {
+            columns_to_select.push(st.asText(this.tableDefinition.geometryColumnName || 'wkb_geometry').as('geometry'));
+        }
 
         return columns_to_select;
     }
@@ -159,6 +161,18 @@ export class PostGISCollection implements Collection {
     executeQuery(query : Query) : FeatureStream {
         var ret = new FeatureStream();
 
+        try {
+            this.executeQueryInternal(ret, query);
+        } catch(e) {
+            if (!(e instanceof Error)) {
+                e = new Error(e);
+            }
+            ret.push(e);
+        }
+        return ret;
+    }
+
+    executeQueryInternal(ret : FeatureStream, query : Query) : void {
         ret.remainingFilter = query.filters;
 
         const propertyFilter = this.extractFilter(ret, 'PropertyFilter');
@@ -207,6 +221,9 @@ export class PostGISCollection implements Collection {
         ret.crs = that.tableDefinition.crs;
 
         if (bboxFilter) {
+            if (that.tableDefinition.geometryColumnName === null) {
+                throw new Error('Cannot apply a bbox filter to a collection with no geometry');
+            }
             let needsTransform = bboxFilter.parameters.bboxCrs !== that.tableDefinition.crs;
             let intersectsGeometry;
             if (!needsTransform) {
@@ -219,12 +236,10 @@ export class PostGISCollection implements Collection {
                 );
             } else {
                 if (!proj4.defs(bboxFilter.parameters.bboxCrs)) {
-                    ret.push(new Error(`bbox-crs (${bboxFilter.parameters.bboxCrs}) not supported`));
-                    return ret;
+                    throw new Error(`bbox-crs (${bboxFilter.parameters.bboxCrs}) not supported`);
                 }
                 if (!proj4.defs(that.tableDefinition.crs)) {
-                    ret.push(new Error(`Data CRS (${that.tableDefinition.crs}) not supported`));
-                    return ret;
+                    throw new Error(`Data CRS (${that.tableDefinition.crs}) not supported`);
                 }
                 function tr(ix,iy) {
                     return proj4(
@@ -275,8 +290,6 @@ export class PostGISCollection implements Collection {
             }
             ret.push(null);
         });
-
-        return ret;
     }
 
     getFeatureById(id : string) : Promise<Feature> {

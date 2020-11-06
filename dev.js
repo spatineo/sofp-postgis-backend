@@ -46,7 +46,8 @@ const tableDefinition = {
     crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',
     columns : columnsAuInspire,
     hidePrimaryKey: true,
-    schemaName: 'au_inspire'
+    schemaName: 'au_inspire',
+    geometryColumnName: 'wkb_geometry'
 };
 
 const collectionDefinition= {

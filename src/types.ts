@@ -25,7 +25,7 @@ export interface ColumnDefinition {
 export interface TableDefinition {
     title: string;
     name: string;
-    geometryColumnName?: string;
+    geometryColumnName?: string | null; // null if no geometry
     description: string;
     tableName: string;
     tableSchema: string;
