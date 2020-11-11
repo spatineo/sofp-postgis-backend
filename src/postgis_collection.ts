@@ -71,7 +71,7 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
         return value;
     }
 
-    const feature = {
+    var feature = {
         id: getValue(pk),
         type: 'Feature',
         geometry: nullSafeGeom(item.geometry),
@@ -79,7 +79,13 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
             if (c.primaryKey && tableDef.hidePrimaryKey) {
                 return memo;
             }
-            memo[c.name] = getValue(c);
+            var value = getValue(c);
+            // Special name "*" translates to => all values from this JSON object are included in resulting feature properties
+            if (c.name === '*') {
+                memo = _.extend(memo, value);
+            } else {
+                memo[c.name] = getValue(c);
+            }
             return memo;
         }, {})
     }
@@ -87,6 +93,10 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
     _.each(_.filter(tableDef.columns, c => !!c.valueFn), c => {
         feature.properties[c.name] = c.valueFn(feature);
     });
+
+    if (tableDef.featurePostProcessor) {
+        feature = tableDef.featurePostProcessor(feature);
+    }
 
     return feature;
 }
@@ -176,6 +186,7 @@ export class PostGISCollection implements Collection {
         ret.remainingFilter = query.filters;
 
         const propertyFilter = this.extractFilter(ret, 'PropertyFilter');
+        const additionalParameterFilter = this.extractFilter(ret, 'AdditionalParameterFilter');
         const bboxFilter     = this.extractFilter(ret, 'BBOXFilter');
         const timeFilter     = this.extractFilter(ret, 'TimeFilter');
 
@@ -215,6 +226,16 @@ export class PostGISCollection implements Collection {
                 } else {
                     q = q.where(column.columnName || column.name, v);
                 }
+            });
+        }
+        if (additionalParameterFilter) {
+            const jsonColumn = _.find(that.tableDefinition.columns, c => c.name === '*');
+            if (!jsonColumn) {
+                throw new Error('AdditionalParameterFilter but no wildcard column! This is an experimental feature that you probably did not know how to use...');
+            }
+            _.each(additionalParameterFilter.parameters.parameters, (v, k) => {
+                var qp : QueryParameter = _.find(that.additionalQueryParameters, aqp => aqp.name.toLowerCase() === k);
+                q = q.whereRaw(`${jsonColumn.columnName}->>'${qp.name}'=?`, [v]);
             });
         }
 

@@ -1,4 +1,4 @@
-import { PropertyType } from 'sofp-lib';
+import { PropertyType, Feature } from 'sofp-lib';
 
 export interface CollectionConfiguration {
     collectionPath : string;
@@ -34,5 +34,6 @@ export interface TableDefinition {
     hidePrimaryKey?: boolean; // true if primaryKey column should not be included in properties
     columns: ColumnDefinition [];
     collection: CollectionConfiguration;
+    featurePostProcessor?: (feature) => any;
 };
 
