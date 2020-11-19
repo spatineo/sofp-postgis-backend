@@ -55,7 +55,10 @@ function resultToGeoJSON(item, tableDef : TableDefinition) {
         if (geom) {
             return wkx.Geometry.parse(geom).toGeoJSON();
         } else {
-            return null;
+            return {
+                "type": "Polygon",
+                "coordinates": [ ]
+            };
         }
     }
 
