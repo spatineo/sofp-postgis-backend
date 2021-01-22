@@ -6,7 +6,7 @@ import Knex from 'knex';
 import KnexPostgis from 'knex-postgis';
 import * as wkx from 'wkx';
 
-import * as proj4 from 'proj4';
+import proj4 from 'proj4';
 import * as pg from 'pg';
 
 import {ColumnDefinition, TableDefinition, CollectionConfiguration} from './types';
