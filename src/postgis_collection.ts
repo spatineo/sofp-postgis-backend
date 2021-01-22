@@ -248,7 +248,13 @@ export class PostGISCollection implements Collection {
             if (that.tableDefinition.geometryColumnName === null) {
                 throw new Error('Cannot apply a bbox filter to a collection with no geometry');
             }
-            let needsTransform = bboxFilter.parameters.bboxCrs !== that.tableDefinition.crs;
+	    if (bboxFilter.parameters.bboxCrs === "undefined") {
+	    	bboxFilter.parameters.bboxCrs = undefined;
+	    }
+	    if (bboxFilter.parameters.bboxCrs === undefined) {
+	    	bboxFilter.parameters.bboxCrs = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84';
+	    }
+	    let needsTransform = crsUrlToNumber(bboxFilter.parameters.bboxCrs) !== crsUrlToNumber(that.tableDefinition.crs);
             let intersectsGeometry;
             if (!needsTransform) {
                 intersectsGeometry = st.makeEnvelope(
